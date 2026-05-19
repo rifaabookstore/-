@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>رفعة | مكتبة رفعة الإسلامية</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -188,7 +187,7 @@
     </div>
 
     <div id="page-home" class="page active">
-        <div id="home-books" class="books-grid"><div style="text-align:center; padding:50px;">جاري التحميل...</div></div>
+        <div id="home-books" class="books-grid"></div>
         <div style="text-align: center; margin-top: 25px;">
             <button id="view-all-btn" style="background: transparent; border: 1px solid #A0A8B3; color: #A0A8B3; padding: 12px 28px; border-radius: 40px; cursor: pointer;">📖 عرض جميع الكتب</button>
         </div>
@@ -196,7 +195,7 @@
 
     <div id="page-shop" class="page">
         <h3>📖 جميع الكتب</h3>
-        <div id="shop-books" class="books-grid"><div style="text-align:center; padding:50px;">جاري التحميل...</div></div>
+        <div id="shop-books" class="books-grid"></div>
     </div>
 
     <div id="page-cart" class="page">
@@ -262,75 +261,18 @@
 </div>
 
 <script>
-    // ==================== إعداد Supabase ====================
-    const SUPABASE_URL = "https://qzfakyxfteqzywxknap.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZmFreXhmdGllcXp5d3hrbmFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMjYyMDIsImV4cCI6MjA5NDcwMjIwMn0.uGA8djcdCgq371Cs_emo-8o-QHXd476b85SCEQ7vjh0";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ==================== الكتب ====================
+    let books = [
+        { id: 1, name: "متون طالب العلم (المستويات الخمسة)", author: "الشيخ الدكتور عبد المحسن بن محمد القاسم", price: 840, description: "حقيبة علمية متكاملة تضم متناً معتمداً في مختلف العلوم الشرعية مرتبة تدرجياً عبر خمسة مستويات", image_url: "https://i.ibb.co/6JnnMFs7/file-00000000d9b071fd8587aa3fb9386c94.png", icon: "📚" },
+        { id: 2, name: "شرح عقيدة أهل السنة والجماعة", author: "الشيخ محمد بن صالح العثيمين", price: 1650, description: "يشرح أصول عقيدة أهل السنة والجماعة في أسماء الله وصفاته بأسلوب علمي مبسط", image_url: "https://i.ibb.co/DfJjWVvX/file-00000000fd9071fd9cdb36bf9d71ccd1.png", icon: "📖" },
+        { id: 3, name: "رياض الصالحين (بتعليق ابن عثيمين)", author: "الإمام يحيى بن شرف النووي", price: 1350, description: "أشهر كتب الحديث الشريف يجمع الآداب والأخلاق والرقائق مع تعليقات ابن عثيمين", image_url: "https://i.ibb.co/gZp9LFhj/file-0000000059b071f899079ba9f023ae69.png", icon: "🏛️" },
+        { id: 4, name: "الداء والدواء (الجواب الكافي)", author: "الإمام ابن قيم الجوزية", price: 1300, description: "كتاب يعالج أمراض القلوب ويوضح خطورة الذنوب مع بيان سبل التوبة", image_url: "https://i.ibb.co/mFTBqJP0/file-00000000eef471fd859227c5b650214d.png", icon: "✨" },
+        { id: 5, name: "مختصر صحيح البخاري", author: "الإمام زين الدين أحمد بن عبد اللطيف الزبيدي", price: 1850, description: "اختصار وتجريد لصحيح الإمام البخاري بحذف الأسانيد لتسهيل الوصول إلى النص", image_url: "https://i.ibb.co/4nbp2N09/file-00000000e41871fdbfbb41fada75b4af.png", icon: "⚖️" }
+    ];
 
-    let books = [];
     let cart = [];
     let isAdmin = false;
     let clickCount = 0;
-
-    // ==================== تحميل الكتب من Supabase ====================
-    async function loadBooks() {
-        const { data, error } = await supabase.from('books').select('*').order('id', { ascending: true });
-        if (error) {
-            console.error("خطأ في التحميل:", error);
-            books = [];
-        } else {
-            books = data || [];
-        }
-        renderHome();
-        renderShop();
-        if (isAdmin) renderBooksListAdmin();
-    }
-
-    // ==================== إضافة كتاب ====================
-    async function addBookToDB(book) {
-        const { data, error } = await supabase.from('books').insert([{
-            name: book.name,
-            author: book.author,
-            price: parseInt(book.price),
-            description: book.description,
-            image_url: book.image_url,
-            icon: book.icon || "📚"
-        }]).select();
-        if (error) {
-            alert("خطأ: " + error.message);
-            return null;
-        }
-        await loadBooks();
-        showToast("✓ تمت إضافة الكتاب");
-        return data[0];
-    }
-
-    // ==================== تحديث كتاب ====================
-    async function updateBookInDB(id, updates) {
-        const { error } = await supabase.from('books').update(updates).eq('id', id);
-        if (error) {
-            alert("خطأ: " + error.message);
-            return false;
-        }
-        await loadBooks();
-        showToast("✓ تم تحديث الكتاب");
-        return true;
-    }
-
-    // ==================== حذف كتاب ====================
-    async function deleteBookFromDB(id) {
-        if (confirm("هل أنت متأكد من حذف هذا الكتاب؟")) {
-            const { error } = await supabase.from('books').delete().eq('id', id);
-            if (error) {
-                alert("خطأ: " + error.message);
-                return false;
-            }
-            await loadBooks();
-            showToast("✓ تم حذف الكتاب");
-            return true;
-        }
-        return false;
-    }
 
     // ==================== دوال السلة ====================
     function saveCart() {
@@ -404,14 +346,10 @@
         let grid = document.getElementById('home-books');
         if (!grid) return;
         let first4 = books.slice(0, 4);
-        if (first4.length === 0) {
-            grid.innerHTML = '<div style="text-align:center; padding:30px;">لا توجد كتب</div>';
-            return;
-        }
         grid.innerHTML = first4.map(book => `
             <div class="book-card">
                 <div>
-                    ${book.image_url ? `<img src="${book.image_url}" class="book-cover-img" onerror="this.style.display='none'">` : `<div class="book-cover-icon">${book.icon || '📚'}</div>`}
+                    ${book.image_url ? `<img src="${book.image_url}" class="book-cover-img" onerror="this.style.display='none'">` : `<div class="book-cover-icon">${book.icon}</div>`}
                     <div class="book-title">${book.name}</div>
                     <div class="book-author">${book.author}</div>
                 </div>
@@ -426,21 +364,17 @@
     function renderShop() {
         let grid = document.getElementById('shop-books');
         if (!grid) return;
-        if (books.length === 0) {
-            grid.innerHTML = '<div style="text-align:center; padding:30px;">لا توجد كتب</div>';
-            return;
-        }
         grid.innerHTML = books.map(book => `
             <div class="book-card">
                 <div>
-                    ${book.image_url ? `<img src="${book.image_url}" class="book-cover-img" onerror="this.style.display='none'">` : `<div class="book-cover-icon">${book.icon || '📚'}</div>`}
+                    ${book.image_url ? `<img src="${book.image_url}" class="book-cover-img" onerror="this.style.display='none'">` : `<div class="book-cover-icon">${book.icon}</div>`}
                     <div class="book-title">${book.name}</div>
                     <div class="book-author">${book.author}</div>
                 </div>
                 <div>
                     <div class="book-price">${book.price} دج</div>
                     <button class="add-btn" onclick="window.addToCart(${book.id})">➕ أضف إلى السلة</button>
-                    <button class="detail-btn" onclick="alert('${(book.description || 'لا يوجد وصف').replace(/'/g, "\\'")}')">📖 تفاصيل</button>
+                    <button class="detail-btn" onclick="alert('${book.description.replace(/'/g, "\\'")}')">📖 تفاصيل</button>
                 </div>
             </div>
         `).join('');
@@ -449,10 +383,6 @@
     function renderBooksListAdmin() {
         let container = document.getElementById('books-list-admin');
         if (!container) return;
-        if (books.length === 0) {
-            container.innerHTML = '<p style="text-align:center;">لا توجد كتب</p>';
-            return;
-        }
         container.innerHTML = books.map(book => `
             <div class="book-list-item">
                 <span><strong>${book.name}</strong><br><small>${book.price} دج</small></span>
@@ -464,48 +394,48 @@
         `).join('');
     }
 
-    window.editBook = async function(id) {
+    window.editBook = function(id) {
         let book = books.find(b => b.id === id);
         if (!book) return;
-        let newName = prompt("اسم الكتاب:", book.name); if (!newName) return;
-        let newAuthor = prompt("المؤلف:", book.author); if (!newAuthor) return;
-        let newPrice = prompt("السعر:", book.price); if (!newPrice) return;
-        let newImage = prompt("رابط الصورة:", book.image_url || "");
-        let newDesc = prompt("الوصف:", book.description || "");
-        let newIcon = prompt("الأيقونة:", book.icon || "📚");
-        await updateBookInDB(id, {
-            name: newName,
-            author: newAuthor,
-            price: parseInt(newPrice),
-            image_url: newImage,
-            description: newDesc,
-            icon: newIcon
-        });
+        let newName = prompt("اسم الكتاب:", book.name); if (newName) book.name = newName;
+        let newAuthor = prompt("المؤلف:", book.author); if (newAuthor) book.author = newAuthor;
+        let newPrice = prompt("السعر:", book.price); if (newPrice) book.price = parseInt(newPrice);
+        let newImage = prompt("رابط الصورة:", book.image_url); if (newImage !== null) book.image_url = newImage;
+        let newDesc = prompt("الوصف:", book.description); if (newDesc !== null) book.description = newDesc;
+        renderHome(); renderShop(); renderBooksListAdmin();
+        showToast("✓ تم التعديل");
     };
 
-    window.deleteBook = async function(id) {
-        await deleteBookFromDB(id);
+    window.deleteBook = function(id) {
+        if (confirm("هل أنت متأكد؟")) {
+            books = books.filter(b => b.id !== id);
+            renderHome(); renderShop(); renderBooksListAdmin();
+            showToast("✓ تم الحذف");
+        }
     };
 
-    async function addNewBook() {
+    function addNewBook() {
         let newBook = {
+            id: books.length + 1,
             name: document.getElementById('new-name').value,
             author: document.getElementById('new-author').value,
-            price: document.getElementById('new-price').value,
+            price: parseInt(document.getElementById('new-price').value),
             image_url: document.getElementById('new-image').value,
             description: document.getElementById('new-desc').value,
             icon: "📚"
         };
         if (!newBook.name || !newBook.author || !newBook.price) {
-            alert("املأ الحقول الأساسية (الاسم، المؤلف، السعر)");
+            alert("املأ الحقول الأساسية");
             return;
         }
-        await addBookToDB(newBook);
+        books.push(newBook);
+        renderHome(); renderShop(); renderBooksListAdmin();
         document.getElementById('new-name').value = '';
         document.getElementById('new-author').value = '';
         document.getElementById('new-price').value = '';
         document.getElementById('new-image').value = '';
         document.getElementById('new-desc').value = '';
+        showToast("✓ تمت الإضافة");
     }
 
     // ==================== دوال التوصيل ====================
@@ -537,10 +467,10 @@
     }
 
     function updateCheckoutSummary() {
-        let subtotal = getTotal(), delivery = getDeliveryFee(), total = subtotal + delivery;
+        let subtotal = getTotal(), delivery = getDeliveryFee();
         document.getElementById('subtotal').innerText = subtotal;
         document.getElementById('delivery-fee-amount').innerText = delivery;
-        document.getElementById('checkout-total').innerText = total;
+        document.getElementById('checkout-total').innerText = subtotal + delivery;
         let container = document.getElementById('order-summary-items');
         if (container) container.innerHTML = cart.map(i => `<p>📘 ${i.name} (x${i.qty}) : ${i.price * i.qty} دج</p>`).join('');
     }
@@ -612,12 +542,12 @@
         document.getElementById('dashboard-modal').classList.remove('active');
     });
 
-    // ==================== التحميل الآمن ====================
-    document.addEventListener('DOMContentLoaded', async () => {
+    // ==================== التحميل ====================
+    document.addEventListener('DOMContentLoaded', () => {
         populateWilayas();
         loadCartFromStorage();
-        
-        // 1. تفعيل الأزرار والتنقل فوراً لتجنب تجمد الواجهة في حال حدوث مشاكل شبكة
+        renderHome();
+        renderShop();
         document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.page)));
         document.getElementById('view-all-btn')?.addEventListener('click', () => showPage('shop'));
         document.getElementById('fixed-cart-btn')?.addEventListener('click', () => showPage('checkout'));
@@ -625,19 +555,7 @@
         document.getElementById('send-whatsapp')?.addEventListener('click', sendOrder);
         document.getElementById('wilaya')?.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); });
         document.querySelectorAll('input[name="delivery"]').forEach(radio => radio.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); }));
-
-        // 2. محاولة جلب الكتب بهدوء من قاعدة البيانات مع وجود حماية الخطأ
-        try {
-            await loadBooks();
-        } catch (dbError) {
-            console.error("Database failed to load:", dbError);
-            let gridHome = document.getElementById('home-books');
-            let gridShop = document.getElementById('shop-books');
-            if (gridHome) gridHome.innerHTML = '<div style="text-align:center; padding:30px;">عذراً، حدث خطأ أثناء الاتصال بقاعدة البيانات.</div>';
-            if (gridShop) gridShop.innerHTML = '<div style="text-align:center; padding:30px;">عذراً، حدث خطأ أثناء الاتصال بقاعدة البيانات.</div>';
-        }
     });
 </script>
 </body>
 </html>
-
