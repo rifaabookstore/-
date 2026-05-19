@@ -264,7 +264,7 @@
 <script>
     // ==================== إعداد Supabase ====================
     const SUPABASE_URL = "https://qzfakyxfteqzywxknap.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_xC0vYq6trz76-GHhBuTv_w_yYd3Shxg";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZmFreXhmdGllcXp5d3hrbmFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMjYyMDIsImV4cCI6MjA5NDcwMjIwMn0.uGA8djcdCgq371Cs_emo-8o-QHXd476b85SCEQ7vjh0";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let books = [];
@@ -537,10 +537,10 @@
     }
 
     function updateCheckoutSummary() {
-        let subtotal = getTotal(), delivery = getDeliveryFee();
+        let subtotal = getTotal(), delivery = getDeliveryFee(), total = subtotal + delivery;
         document.getElementById('subtotal').innerText = subtotal;
         document.getElementById('delivery-fee-amount').innerText = delivery;
-        document.getElementById('checkout-total').innerText = subtotal + delivery;
+        document.getElementById('checkout-total').innerText = total;
         let container = document.getElementById('order-summary-items');
         if (container) container.innerHTML = cart.map(i => `<p>📘 ${i.name} (x${i.qty}) : ${i.price * i.qty} دج</p>`).join('');
     }
@@ -612,11 +612,12 @@
         document.getElementById('dashboard-modal').classList.remove('active');
     });
 
-    // ==================== التحميل ====================
+    // ==================== التحميل الآمن ====================
     document.addEventListener('DOMContentLoaded', async () => {
         populateWilayas();
         loadCartFromStorage();
-        await loadBooks();
+        
+        // 1. تفعيل الأزرار والتنقل فوراً لتجنب تجمد الواجهة في حال حدوث مشاكل شبكة
         document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.page)));
         document.getElementById('view-all-btn')?.addEventListener('click', () => showPage('shop'));
         document.getElementById('fixed-cart-btn')?.addEventListener('click', () => showPage('checkout'));
@@ -624,7 +625,19 @@
         document.getElementById('send-whatsapp')?.addEventListener('click', sendOrder);
         document.getElementById('wilaya')?.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); });
         document.querySelectorAll('input[name="delivery"]').forEach(radio => radio.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); }));
+
+        // 2. محاولة جلب الكتب بهدوء من قاعدة البيانات مع وجود حماية الخطأ
+        try {
+            await loadBooks();
+        } catch (dbError) {
+            console.error("Database failed to load:", dbError);
+            let gridHome = document.getElementById('home-books');
+            let gridShop = document.getElementById('shop-books');
+            if (gridHome) gridHome.innerHTML = '<div style="text-align:center; padding:30px;">عذراً، حدث خطأ أثناء الاتصال بقاعدة البيانات.</div>';
+            if (gridShop) gridShop.innerHTML = '<div style="text-align:center; padding:30px;">عذراً، حدث خطأ أثناء الاتصال بقاعدة البيانات.</div>';
+        }
     });
 </script>
 </body>
 </html>
+
