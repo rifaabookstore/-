@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>رفعة | مكتبة رفعة الإسلامية</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #09121F;
+            color: #E6DFCE;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            padding: 15px;
+            padding-bottom: 80px;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, rgba(22, 40, 64, 0.6) 0%, #09121F 90%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .container { position: relative; z-index: 2; }
+        .header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid #A0A8B3;
+            margin-bottom: 20px;
+            background: rgba(9, 18, 31, 0.7);
+            border-radius: 20px;
+        }
+        .logo-img {
+            max-width: 150px;
+            margin-bottom: 15px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .logo-text {
+            font-size: 28px;
+            color: #C5B495;
+            font-weight: bold;
+        }
+        .logo-text small {
+            font-size: 14px;
+            display: block;
+            color: #A0A8B3;
+            margin-top: 5px;
+        }
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            background: transparent;
+            border: 1px solid #A0A8B3;
+            color: #E6DFCE;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .nav-btn.active {
+            background: #A0A8B3;
+            color: #09121F;
+        }
+        .page { display: none; }
+        .page.active { display: block; }
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        @media (min-width: 600px) {
+            .books-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        .book-card {
+            background: rgba(22, 40, 64, 0.7);
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(192, 180, 149, 0.3);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .book-cover-img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #A0A8B3;
+        }
+        .book-cover-icon { font-size: 48px; margin-bottom: 10px; padding: 40px 0; }
+        .book-title { font-weight: bold; font-size: 15px; margin: 8px 0; }
+        .book-author { font-size: 12px; color: #A0A8B3; margin-bottom: 5px; }
+        .book-price { color: #C5B495; font-weight: bold; font-size: 16px; margin: 10px 0; }
+        .add-btn {
+            background: #A0A8B3;
+            border: none;
+            padding: 10px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            color: #09121F;
+        }
+        .cart-fixed {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #09121F;
+            border-top: 2px solid #A0A8B3;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        .cart-fixed button {
+            background: #A0A8B3;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #09121F;
+        }
+        .cart-count {
+            background: #A0A8B3;
+            color: #09121F;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .cart-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .cart-table th, .cart-table td { padding: 12px 6px; border-bottom: 1px solid rgba(192, 180, 149, 0.3); text-align: right; }
+        .qty-input { width: 55px; padding: 8px; background: #162840; border: 1px solid #A0A8B3; border-radius: 8px; color: #E6DFCE; text-align: center; }
+        .remove-btn { background: none; border: none; color: #C5B495; font-size: 18px; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        input, select, textarea { width: 100%; padding: 14px; background: #162840; border: 1px solid #A0A8B3; border-radius: 12px; color: #E6DFCE; font-size: 14px; }
+        label { display: block; margin-bottom: 8px; color: #C5B495; }
+        .delivery-option { display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
+        .delivery-option label { display: flex; align-items: center; gap: 8px; background: rgba(192, 180, 149, 0.12); padding: 10px 18px; border-radius: 40px; cursor: pointer; }
+        .order-summary { background: rgba(22, 40, 64, 0.6); padding: 18px; border-radius: 16px; margin: 15px 0; }
+        .confirm-btn { background: #C5B495; width: 100%; padding: 15px; font-size: 16px; font-weight: bold; border: none; border-radius: 40px; cursor: pointer; color: #09121F; }
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #C5B495; color: #09121F; padding: 10px 24px; border-radius: 40px; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .empty-cart { text-align: center; padding: 40px; color: #A0A8B3; }
+        .delivery-info { background: rgba(192, 180, 149, 0.08); padding: 10px; border-radius: 12px; margin-top: 8px; font-size: 13px; }
+        .admin-modal, .book-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .admin-modal.active, .book-modal.active { display: flex; }
+        .admin-modal-content, .book-modal-content { background: #09121F; border: 2px solid #A0A8B3; border-radius: 20px; padding: 25px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .admin-modal-content h3, .book-modal-content h3 { color: #C5B495; margin-bottom: 20px; }
+        .password-input { width: 100%; padding: 14px; margin-bottom: 15px; background: #162840; border: 1px solid #A0A8B3; border-radius: 12px; color: #E6DFCE; }
+        hr { border-color: rgba(192, 180, 149, 0.3); margin: 10px 0; }
+        footer { text-align: center; padding: 20px; font-size: 11px; color: #A0A8B3; }
+        .detail-btn { background: transparent; border: 1px solid #A0A8B3; color: #A0A8B3; margin-top: 8px; width: 100%; padding: 6px; border-radius: 25px; cursor: pointer; }
+        .book-list-item { background: rgba(192, 180, 149, 0.1); padding: 10px; margin-bottom: 10px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .book-list-item button { background: #C5B495; border: none; padding: 5px 12px; border-radius: 20px; cursor: pointer; margin-left: 5px; }
+        .book-list-item button.delete { background: #dc2626; color: white; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="https://i.ibb.co/RkFNbr75/1778958321609.png" alt="رفعة" class="logo-img" id="secret-logo">
+        <div class="logo-text">رِفعة <small>مكتبة إسلامية أكاديمية</small></div>
+    </div>
+
+    <div class="nav">
+        <button class="nav-btn active" data-page="home">🏠 الرئيسية</button>
+        <button class="nav-btn" data-page="shop">📚 المتجر</button>
+        <button class="nav-btn" data-page="cart">🛒 السلة</button>
+        <button class="nav-btn" data-page="checkout">📦 الشراء</button>
+    </div>
+
+    <div id="page-home" class="page active">
+        <div id="home-books" class="books-grid"><div style="text-align:center; padding:50px;">جاري التحميل...</div></div>
+        <div style="text-align: center; margin-top: 25px;">
+            <button id="view-all-btn" style="background: transparent; border: 1px solid #A0A8B3; color: #A0A8B3; padding: 12px 28px; border-radius: 40px; cursor: pointer;">📖 عرض جميع الكتب</button>
+        </div>
+    </div>
+
+    <div id="page-shop" class="page">
+        <h3>📖 جميع الكتب</h3>
+        <div id="shop-books" class="books-grid"><div style="text-align:center; padding:50px;">جاري التحميل...</div></div>
+    </div>
+
+    <div id="page-cart" class="page">
+        <h3>🛒 سلة المشتريات</h3>
+        <div id="cart-items"></div>
+        <div style="margin-top: 15px;"><strong>المجموع: <span id="cart-total">0</span> دج</strong></div>
+        <button id="goto-checkout" style="margin-top:20px; background:#A0A8B3; border:none; padding:12px; border-radius:40px; width:100%; cursor:pointer;">📦 إتمام الشراء</button>
+    </div>
+
+    <div id="page-checkout" class="page">
+        <h3>📝 معلومات الطلب</h3>
+        <div class="form-group"><label>👤 الاسم الكامل</label><input type="text" id="fullName"></div>
+        <div class="form-group"><label>📞 رقم الهاتف</label><input type="tel" id="phoneNumber"></div>
+        <div class="form-group"><label>📍 الولاية</label><select id="wilaya"><option value="">-- اختر --</option></select></div>
+        <div class="form-group"><label>🏠 العنوان</label><input type="text" id="address"><div class="delivery-info" id="delivery-price-info"></div></div>
+        <div class="delivery-option">
+            <label><input type="radio" name="delivery" value="توصيل للمنزل" checked> 🏠 توصيل للمنزل</label>
+            <label><input type="radio" name="delivery" value="نقطة استلام"> 📦 نقطة استلام</label>
+        </div>
+        <div class="order-summary">
+            <h4>📋 ملخص الطلب</h4>
+            <div id="order-summary-items"></div>
+            <hr>
+            <div>المجموع الفرعي: <span id="subtotal">0</span> دج</div>
+            <div>🚚 التوصيل: <span id="delivery-fee-amount">0</span> دج</div>
+            <hr><strong>الإجمالي: <span id="checkout-total">0</span> دج</strong>
+        </div>
+        <button id="send-whatsapp" class="confirm-btn">📱 تأكيد الطلب عبر واتساب</button>
+    </div>
+
+    <div class="cart-fixed">
+        <div>🛒 السلة: <span id="fixed-cart-count" class="cart-count">0</span></div>
+        <button id="fixed-cart-btn">📦 إتمام الشراء</button>
+    </div>
+
+    <footer>© 2026 مكتبة رفعة | نور وعلم</footer>
+</div>
+
+<div id="admin-modal" class="admin-modal">
+    <div class="admin-modal-content">
+        <h3>🔐 لوحة التحكم</h3>
+        <input type="password" id="admin-password" class="password-input" placeholder="كلمة السر">
+        <button id="admin-login-btn" style="background:#C5B495; border:none; padding:12px; border-radius:30px; width:100%; cursor:pointer;">دخول</button>
+        <p style="margin-top:15px; font-size:12px; color:#A0A8B3;">اضغط 5 مرات على الشعار للدخول</p>
+    </div>
+</div>
+
+<div id="dashboard-modal" class="book-modal">
+    <div class="book-modal-content">
+        <h3>📚 لوحة تحكم الكتب</h3>
+        <h4>➕ إضافة كتاب جديد</h4>
+        <input type="text" id="new-name" placeholder="اسم الكتاب" class="password-input">
+        <input type="text" id="new-author" placeholder="المؤلف" class="password-input">
+        <input type="number" id="new-price" placeholder="السعر" class="password-input">
+        <input type="text" id="new-image" placeholder="رابط الصورة" class="password-input">
+        <textarea id="new-desc" rows="2" placeholder="الوصف" class="password-input"></textarea>
+        <button id="add-book-btn" style="background:#C5B495; border:none; padding:10px; border-radius:30px; width:100%; cursor:pointer; margin-bottom:20px;">➕ إضافة كتاب</button>
+        <hr>
+        <h4>✏️ الكتب الموجودة</h4>
+        <div id="books-list-admin" style="max-height: 300px; overflow-y: auto;"></div>
+        <button id="close-dashboard-btn" style="margin-top:20px; background:transparent; border:1px solid #A0A8B3; padding:10px; border-radius:30px; width:100%; cursor:pointer; color:#E6DFCE;">إغلاق</button>
+    </div>
+</div>
+
+<script>
+    // ==================== إعداد Supabase ====================
+    const SUPABASE_URL = "https://qzfakyxfteqzywxknap.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_xC0vYq6trz76-GHhBuTv_w_yYd3Shxg";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let books = [];
+    let cart = [];
+    let isAdmin = false;
+    let clickCount = 0;
+
+    // ==================== تحميل الكتب من Supabase ====================
+    async function loadBooks() {
+        const { data, error } = await supabase.from('books').select('*').order('id', { ascending: true });
+        if (error) {
+            console.error("خطأ في التحميل:", error);
+            books = [];
+        } else {
+            books = data || [];
+        }
+        renderHome();
+        renderShop();
+        if (isAdmin) renderBooksListAdmin();
+    }
+
+    // ==================== إضافة كتاب ====================
+    async function addBookToDB(book) {
+        const { data, error } = await supabase.from('books').insert([{
+            name: book.name,
+            author: book.author,
+            price: parseInt(book.price),
+            description: book.description,
+            image_url: book.image_url,
+            icon: book.icon || "📚"
+        }]).select();
+        if (error) {
+            alert("خطأ: " + error.message);
+            return null;
+        }
+        await loadBooks();
+        showToast("✓ تمت إضافة الكتاب");
+        return data[0];
+    }
+
+    // ==================== تحديث كتاب ====================
+    async function updateBookInDB(id, updates) {
+        const { error } = await supabase.from('books').update(updates).eq('id', id);
+        if (error) {
+            alert("خطأ: " + error.message);
+            return false;
+        }
+        await loadBooks();
+        showToast("✓ تم تحديث الكتاب");
+        return true;
+    }
+
+    // ==================== حذف كتاب ====================
+    async function deleteBookFromDB(id) {
+        if (confirm("هل أنت متأكد من حذف هذا الكتاب؟")) {
+            const { error } = await supabase.from('books').delete().eq('id', id);
+            if (error) {
+                alert("خطأ: " + error.message);
+                return false;
+            }
+            await loadBooks();
+            showToast("✓ تم حذف الكتاب");
+            return true;
+        }
+        return false;
+    }
+
+    // ==================== دوال السلة ====================
+    function saveCart() {
+        localStorage.setItem('rifa_cart', JSON.stringify(cart));
+        updateCartUI();
+    }
+
+    function loadCartFromStorage() {
+        let saved = localStorage.getItem('rifa_cart');
+        if (saved) { try { cart = JSON.parse(saved); } catch(e) { cart = []; } }
+        updateCartUI();
+    }
+
+    window.addToCart = function(bookId) {
+        let book = books.find(b => b.id === bookId);
+        if (!book) return;
+        let existing = cart.find(i => i.id === bookId);
+        if (existing) existing.qty++;
+        else cart.push({ id: book.id, name: book.name, price: book.price, qty: 1 });
+        saveCart();
+        showToast('✓ تمت الإضافة: ' + book.name);
+    };
+
+    function updateQuantity(id, newQty) {
+        let item = cart.find(i => i.id === id);
+        if (item) { item.qty = Math.max(1, parseInt(newQty) || 1); saveCart(); }
+    }
+
+    window.removeCartItem = function(id) {
+        cart = cart.filter(i => i.id !== id);
+        saveCart();
+    };
+
+    function getTotal() { return cart.reduce((sum, i) => sum + (i.price * i.qty), 0); }
+
+    function updateCartUI() {
+        let count = cart.reduce((s, i) => s + i.qty, 0);
+        document.getElementById('fixed-cart-count').innerText = count;
+        renderCartPage();
+        updateCheckoutSummary();
+    }
+
+    function renderCartPage() {
+        let container = document.getElementById('cart-items');
+        if (!container) return;
+        if (cart.length === 0) {
+            container.innerHTML = '<div class="empty-cart">📭 السلة فارغة</div>';
+            document.getElementById('cart-total').innerText = '0';
+            return;
+        }
+        let html = '<table class="cart-table"><thead><th>الكتاب</th><th>السعر</th><th>الكمية</th><th>المجموع</th><th></th></thead><tbody>';
+        for (let item of cart) {
+            html += `<tr>
+                <td>${item.name}</td>
+                <td>${item.price} دج</td>
+                <td><input type="number" class="qty-input" data-id="${item.id}" value="${item.qty}" min="1"></td>
+                <td>${item.price * item.qty} دج</td>
+                <td><button class="remove-btn" onclick="window.removeCartItem(${item.id})">🗑️</button></td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        document.getElementById('cart-total').innerText = getTotal();
+        document.querySelectorAll('.qty-input').forEach(inp => {
+            inp.addEventListener('change', (e) => updateQuantity(parseInt(inp.dataset.id), parseInt(inp.value)));
+        });
+    }
+
+    // ==================== دوال العرض ====================
+    function renderHome() {
+        let grid = document.getElementById('home-books');
+        if (!grid) return;
+        let first4 = books.slice(0, 4);
+        if (first4.length === 0) {
+            grid.innerHTML = '<div style="text-align:center; padding:30px;">لا توجد كتب</div>';
+            return;
+        }
+        grid.innerHTML = first4.map(book => `
+            <div class="book-card">
+                <div>
+                    ${book.image_url ? `<img src="${book.image_url}" class="book-cover-img" onerror="this.style.display='none'">` : `<div class="book-cover-icon">${book.icon || '📚'}</div>`}
+                    <div class="book-title">${book.name}</div>
+                    <div class="book-author">${book.author}</div>
+                </div>
+                <div>
+                    <div class="book-price">${book.price} دج</div>
+                    <button class="add-btn" onclick="window.addToCart(${book.id})">➕ أضف إلى السلة</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderShop() {
+        let grid = document.getElementById('shop-books');
+        if (!grid) return;
+        if (books.length === 0) {
+            grid.innerHTML = '<div style="text-align:center; padding:30px;">لا توجد كتب</div>';
+            return;
+        }
+        grid.innerHTML = books.map(book => `
+            <div class="book-card">
+                <div>
+                    ${book.image_url ? `<img src="${book.image_url}" class="book-cover-img" onerror="this.style.display='none'">` : `<div class="book-cover-icon">${book.icon || '📚'}</div>`}
+                    <div class="book-title">${book.name}</div>
+                    <div class="book-author">${book.author}</div>
+                </div>
+                <div>
+                    <div class="book-price">${book.price} دج</div>
+                    <button class="add-btn" onclick="window.addToCart(${book.id})">➕ أضف إلى السلة</button>
+                    <button class="detail-btn" onclick="alert('${(book.description || 'لا يوجد وصف').replace(/'/g, "\\'")}')">📖 تفاصيل</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderBooksListAdmin() {
+        let container = document.getElementById('books-list-admin');
+        if (!container) return;
+        if (books.length === 0) {
+            container.innerHTML = '<p style="text-align:center;">لا توجد كتب</p>';
+            return;
+        }
+        container.innerHTML = books.map(book => `
+            <div class="book-list-item">
+                <span><strong>${book.name}</strong><br><small>${book.price} دج</small></span>
+                <div>
+                    <button onclick="editBook(${book.id})">✏️ تعديل</button>
+                    <button class="delete" onclick="deleteBook(${book.id})">🗑️ حذف</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    window.editBook = async function(id) {
+        let book = books.find(b => b.id === id);
+        if (!book) return;
+        let newName = prompt("اسم الكتاب:", book.name); if (!newName) return;
+        let newAuthor = prompt("المؤلف:", book.author); if (!newAuthor) return;
+        let newPrice = prompt("السعر:", book.price); if (!newPrice) return;
+        let newImage = prompt("رابط الصورة:", book.image_url || "");
+        let newDesc = prompt("الوصف:", book.description || "");
+        let newIcon = prompt("الأيقونة:", book.icon || "📚");
+        await updateBookInDB(id, {
+            name: newName,
+            author: newAuthor,
+            price: parseInt(newPrice),
+            image_url: newImage,
+            description: newDesc,
+            icon: newIcon
+        });
+    };
+
+    window.deleteBook = async function(id) {
+        await deleteBookFromDB(id);
+    };
+
+    async function addNewBook() {
+        let newBook = {
+            name: document.getElementById('new-name').value,
+            author: document.getElementById('new-author').value,
+            price: document.getElementById('new-price').value,
+            image_url: document.getElementById('new-image').value,
+            description: document.getElementById('new-desc').value,
+            icon: "📚"
+        };
+        if (!newBook.name || !newBook.author || !newBook.price) {
+            alert("املأ الحقول الأساسية (الاسم، المؤلف، السعر)");
+            return;
+        }
+        await addBookToDB(newBook);
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-author').value = '';
+        document.getElementById('new-price').value = '';
+        document.getElementById('new-image').value = '';
+        document.getElementById('new-desc').value = '';
+    }
+
+    // ==================== دوال التوصيل ====================
+    const DELIVERY_PRICES = {
+        "الجزائر": { home: 400, desk: 200 }, "وهران": { home: 800, desk: 400 }, "قسنطينة": { home: 800, desk: 400 },
+        "عنابة": { home: 800, desk: 400 }, "بجاية": { home: 800, desk: 400 }, "تيزي وزو": { home: 700, desk: 350 },
+        "البليدة": { home: 550, desk: 350 }, "سطيف": { home: 800, desk: 400 }, "ورقلة": { home: 1000, desk: 550 }, "بسكرة": { home: 900, desk: 500 }
+    };
+    const WILAYAS_LIST = ["الجزائر", "وهران", "قسنطينة", "عنابة", "بجاية", "تيزي وزو", "البليدة", "سطيف", "ورقلة", "بسكرة"];
+
+    function populateWilayas() {
+        let select = document.getElementById('wilaya');
+        if(!select) return;
+        WILAYAS_LIST.forEach(w => { let opt = document.createElement('option'); opt.value = w; opt.textContent = w; select.appendChild(opt); });
+    }
+
+    function getDeliveryFee() {
+        let wilaya = document.getElementById('wilaya')?.value;
+        if (!wilaya || !DELIVERY_PRICES[wilaya]) return 0;
+        let type = document.querySelector('input[name="delivery"]:checked')?.value;
+        return type === "توصيل للمنزل" ? DELIVERY_PRICES[wilaya].home : DELIVERY_PRICES[wilaya].desk;
+    }
+
+    function updateDeliveryInfo() {
+        let wilaya = document.getElementById('wilaya')?.value;
+        let info = document.getElementById('delivery-price-info');
+        if (wilaya && DELIVERY_PRICES[wilaya]) info.innerHTML = `🏠 توصيل: ${DELIVERY_PRICES[wilaya].home} دج | 📦 استلام: ${DELIVERY_PRICES[wilaya].desk} دج`;
+        else info.innerHTML = '';
+    }
+
+    function updateCheckoutSummary() {
+        let subtotal = getTotal(), delivery = getDeliveryFee();
+        document.getElementById('subtotal').innerText = subtotal;
+        document.getElementById('delivery-fee-amount').innerText = delivery;
+        document.getElementById('checkout-total').innerText = subtotal + delivery;
+        let container = document.getElementById('order-summary-items');
+        if (container) container.innerHTML = cart.map(i => `<p>📘 ${i.name} (x${i.qty}) : ${i.price * i.qty} دج</p>`).join('');
+    }
+
+    function sendOrder() {
+        let name = document.getElementById('fullName')?.value.trim();
+        let phone = document.getElementById('phoneNumber')?.value.trim();
+        let wilaya = document.getElementById('wilaya')?.value;
+        let address = document.getElementById('address')?.value.trim();
+        let deliveryType = document.querySelector('input[name="delivery"]:checked')?.value;
+        if (!name || !phone || !wilaya) { alert('أكمل البيانات'); return; }
+        if (deliveryType === "توصيل للمنزل" && !address) { alert('أدخل العنوان'); return; }
+        if (cart.length === 0) { alert('السلة فارغة'); return; }
+        let subtotal = getTotal(), delivery = getDeliveryFee(), total = subtotal + delivery;
+        let booksMsg = cart.map(i => `- ${i.name} (x${i.qty}) : ${i.price * i.qty} دج`).join('\n');
+        let msg = `📚 طلب جديد من مكتبة رفعة 📚\n\n👤 الاسم: ${name}\n📞 الهاتف: ${phone}\n📍 الولاية: ${wilaya}\n🚚 التوصيل: ${deliveryType}\n${deliveryType === "توصيل للمنزل" ? `🏠 العنوان: ${address}\n` : ''}\n📖 الكتب:\n${booksMsg}\n💰 المجموع: ${subtotal} دج\n🚚 التوصيل: ${delivery} دج\n💵 الإجمالي: ${total} دج`;
+        window.open(`https://wa.me/213784965784?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function showToast(msg) {
+        let toast = document.getElementById('toast');
+        if (!toast) {
+            let div = document.createElement('div');
+            div.id = 'toast';
+            div.className = 'toast';
+            document.body.appendChild(div);
+            toast = div;
+        }
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => {
+            if(b.dataset.page === pageId) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        document.getElementById('page-' + pageId).classList.add('active');
+        if (pageId === 'cart') renderCartPage();
+        if (pageId === 'checkout') updateCheckoutSummary();
+        window.scrollTo(0, 0);
+    }
+
+    // ==================== لوحة التحكم ====================
+    document.getElementById('secret-logo')?.addEventListener('click', () => {
+        clickCount++;
+        setTimeout(() => { clickCount = 0; }, 1500);
+        if (clickCount >= 5) {
+            document.getElementById('admin-modal').classList.add('active');
+            clickCount = 0;
+        }
+    });
+
+    document.getElementById('admin-login-btn')?.addEventListener('click', () => {
+        let password = document.getElementById('admin-password').value;
+        if (password === 'admin123') {
+            isAdmin = true;
+            document.getElementById('admin-modal').classList.remove('active');
+            document.getElementById('dashboard-modal').classList.add('active');
+            renderBooksListAdmin();
+            showToast('مرحباً مدير المتجر');
+        } else alert('كلمة سر خاطئة');
+    });
+
+    document.getElementById('add-book-btn')?.addEventListener('click', addNewBook);
+    document.getElementById('close-dashboard-btn')?.addEventListener('click', () => {
+        document.getElementById('dashboard-modal').classList.remove('active');
+    });
+
+    // ==================== التحميل ====================
+    document.addEventListener('DOMContentLoaded', async () => {
+        populateWilayas();
+        loadCartFromStorage();
+        await loadBooks();
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.page)));
+        document.getElementById('view-all-btn')?.addEventListener('click', () => showPage('shop'));
+        document.getElementById('fixed-cart-btn')?.addEventListener('click', () => showPage('checkout'));
+        document.getElementById('goto-checkout')?.addEventListener('click', () => showPage('checkout'));
+        document.getElementById('send-whatsapp')?.addEventListener('click', sendOrder);
+        document.getElementById('wilaya')?.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); });
+        document.querySelectorAll('input[name="delivery"]').forEach(radio => radio.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); }));
+    });
+</script>
+</body>
+</html>
