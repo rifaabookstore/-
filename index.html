@@ -274,6 +274,78 @@
     let isAdmin = false;
     let clickCount = 0;
 
+    // ==================== أسعار التوصيل لـ 58 ولاية (بناءً على الجدول الذي أرسلته) ====================
+    const DELIVERY_PRICES = {
+        "أدرار": { home: 1300, desk: 750 },
+        "الشلف": { home: 800, desk: 400 },
+        "الأغواط": { home: 900, desk: 550 },
+        "أم البواقي": { home: 800, desk: 400 },
+        "باتنة": { home: 800, desk: 400 },
+        "بجاية": { home: 800, desk: 400 },
+        "بسكرة": { home: 900, desk: 500 },
+        "بشار": { home: 1000, desk: 600 },
+        "البليدة": { home: 550, desk: 350 },
+        "البويرة": { home: 700, desk: 400 },
+        "تمنراست": { home: 1700, desk: 900 },
+        "تبسة": { home: 850, desk: 400 },
+        "تلمسان": { home: 800, desk: 400 },
+        "تيارت": { home: 800, desk: 400 },
+        "تيزي وزو": { home: 700, desk: 350 },
+        "الجزائر": { home: 400, desk: 200 },
+        "الجلفة": { home: 900, desk: 550 },
+        "جيجل": { home: 800, desk: 400 },
+        "سطيف": { home: 800, desk: 400 },
+        "سعيدة": { home: 800, desk: 400 },
+        "سكيكدة": { home: 800, desk: 400 },
+        "سيدي بلعباس": { home: 800, desk: 400 },
+        "عنابة": { home: 800, desk: 400 },
+        "قالمة": { home: 850, desk: 400 },
+        "قسنطينة": { home: 800, desk: 400 },
+        "المدية": { home: 750, desk: 400 },
+        "مستغانم": { home: 800, desk: 400 },
+        "المسيلة": { home: 800, desk: 400 },
+        "معسكر": { home: 800, desk: 400 },
+        "ورقلة": { home: 1000, desk: 550 },
+        "وهران": { home: 800, desk: 400 },
+        "البيض": { home: 1000, desk: 600 },
+        "بومرداس": { home: 550, desk: 350 },
+        "الطارف": { home: 850, desk: 400 },
+        "تندوف": { home: 1400, desk: 600 },
+        "تسمسيلت": { home: 800, desk: 550 },
+        "الوادي": { home: 1000, desk: 550 },
+        "خنشلة": { home: 850, desk: 400 },
+        "سوق أهراس": { home: 800, desk: 400 },
+        "تيبازة": { home: 550, desk: 350 },
+        "ميلة": { home: 800, desk: 400 },
+        "عين الدفلى": { home: 800, desk: 400 },
+        "النعامة": { home: 1000, desk: 600 },
+        "عين تموشنت": { home: 800, desk: 400 },
+        "غرداية": { home: 950, desk: 550 },
+        "غليزان": { home: 800, desk: 500 },
+        "تيميمون": { home: 1300, desk: 700 },
+        "برج بوعريريج": { home: 800, desk: 400 },
+        "بني عباس": { home: 1100, desk: 0 },
+        "إن صالح": { home: 1800, desk: 1100 },
+        "عين قزام": { home: 2200, desk: 1100 },
+        "توقرت": { home: 1000, desk: 550 },
+        "جانت": { home: 2200, desk: 1100 },
+        "المغير": { home: 1000, desk: 0 },
+        "المنيعة": { home: 950, desk: 550 },
+        "برج باجي مختار": { home: 1100, desk: 0 },
+        "أولاد جلال": { home: 900, desk: 0 },
+        "تماسين": { home: 1800, desk: 0 }
+    };
+
+    const WILAYAS_LIST = [
+        "أدرار", "الشلف", "الأغواط", "أم البواقي", "باتنة", "بجاية", "بسكرة", "بشار", "البليدة",
+        "البويرة", "تمنراست", "تبسة", "تلمسان", "تيارت", "تيزي وزو", "الجزائر", "الجلفة", "جيجل",
+        "سطيف", "سعيدة", "سكيكدة", "سيدي بلعباس", "عنابة", "قالمة", "قسنطينة", "المدية", "مستغانم",
+        "المسيلة", "معسكر", "ورقلة", "وهران", "البيض", "بومرداس", "الطارف", "تندوف", "تسمسيلت",
+        "الوادي", "خنشلة", "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت",
+        "غرداية", "غليزان", "تيميمون", "برج بوعريريج", "بني عباس", "إن صالح", "عين قزام", "توقرت",
+        "جانت", "المغير", "المنيعة", "برج باجي مختار", "أولاد جلال", "تماسين"
+    ];
+
     // ==================== دوال السلة ====================
     function saveCart() {
         localStorage.setItem('rifa_cart', JSON.stringify(cart));
@@ -326,7 +398,7 @@
         let html = '<table class="cart-table"><thead><th>الكتاب</th><th>السعر</th><th>الكمية</th><th>المجموع</th><th></th></thead><tbody>';
         for (let item of cart) {
             html += `<tr>
-                <td>${item.name}</td>
+                <td>${item.name}</tr>
                 <td>${item.price} دج</td>
                 <td><input type="number" class="qty-input" data-id="${item.id}" value="${item.qty}" min="1"></td>
                 <td>${item.price * item.qty} دج</td>
@@ -439,31 +511,39 @@
     }
 
     // ==================== دوال التوصيل ====================
-    const DELIVERY_PRICES = {
-        "الجزائر": { home: 400, desk: 200 }, "وهران": { home: 800, desk: 400 }, "قسنطينة": { home: 800, desk: 400 },
-        "عنابة": { home: 800, desk: 400 }, "بجاية": { home: 800, desk: 400 }, "تيزي وزو": { home: 700, desk: 350 },
-        "البليدة": { home: 550, desk: 350 }, "سطيف": { home: 800, desk: 400 }, "ورقلة": { home: 1000, desk: 550 }, "بسكرة": { home: 900, desk: 500 }
-    };
-    const WILAYAS_LIST = ["الجزائر", "وهران", "قسنطينة", "عنابة", "بجاية", "تيزي وزو", "البليدة", "سطيف", "ورقلة", "بسكرة"];
-
     function populateWilayas() {
         let select = document.getElementById('wilaya');
         if(!select) return;
-        WILAYAS_LIST.forEach(w => { let opt = document.createElement('option'); opt.value = w; opt.textContent = w; select.appendChild(opt); });
+        select.innerHTML = '<option value="">-- اختر الولاية --</option>';
+        WILAYAS_LIST.forEach(w => { 
+            let opt = document.createElement('option'); 
+            opt.value = w; 
+            opt.textContent = w; 
+            select.appendChild(opt); 
+        });
     }
 
     function getDeliveryFee() {
         let wilaya = document.getElementById('wilaya')?.value;
         if (!wilaya || !DELIVERY_PRICES[wilaya]) return 0;
         let type = document.querySelector('input[name="delivery"]:checked')?.value;
-        return type === "توصيل للمنزل" ? DELIVERY_PRICES[wilaya].home : DELIVERY_PRICES[wilaya].desk;
+        if (type === "توصيل للمنزل") {
+            return DELIVERY_PRICES[wilaya].home;
+        } else {
+            return DELIVERY_PRICES[wilaya].desk;
+        }
     }
 
     function updateDeliveryInfo() {
         let wilaya = document.getElementById('wilaya')?.value;
         let info = document.getElementById('delivery-price-info');
-        if (wilaya && DELIVERY_PRICES[wilaya]) info.innerHTML = `🏠 توصيل: ${DELIVERY_PRICES[wilaya].home} دج | 📦 استلام: ${DELIVERY_PRICES[wilaya].desk} دج`;
-        else info.innerHTML = '';
+        if (wilaya && DELIVERY_PRICES[wilaya]) {
+            let deskPrice = DELIVERY_PRICES[wilaya].desk;
+            let deskText = deskPrice === 0 ? "غير متوفر" : deskPrice + " دج";
+            info.innerHTML = `🏠 توصيل للمنزل: ${DELIVERY_PRICES[wilaya].home} دج<br>📦 نقطة استلام: ${deskText}`;
+        } else {
+            info.innerHTML = '';
+        }
     }
 
     function updateCheckoutSummary() {
@@ -558,4 +638,4 @@
     });
 </script>
 </body>
-</html>
+    </html>
