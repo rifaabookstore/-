@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>رفعة | مكتبة رفعة الإسلامية</title>
+    
+    <!-- ==================== Facebook Pixel Base Code ==================== -->
+    <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '1501995247999203');
+        fbq('track', 'PageView');
+    </script>
+    <noscript>
+        <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1501995247999203&ev=PageView&noscript=1"/>
+    </noscript>
+    <!-- ==================== End Facebook Pixel ==================== -->
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -274,7 +293,7 @@
     let isAdmin = false;
     let clickCount = 0;
 
-    // ==================== أسعار التوصيل لـ 58 ولاية (بناءً على الجدول الذي أرسلته) ====================
+    // ==================== أسعار التوصيل لـ 58 ولاية ====================
     const DELIVERY_PRICES = {
         "أدرار": { home: 1300, desk: 750 },
         "الشلف": { home: 800, desk: 400 },
@@ -398,7 +417,7 @@
         let html = '<table class="cart-table"><thead><th>الكتاب</th><th>السعر</th><th>الكمية</th><th>المجموع</th><th></th></thead><tbody>';
         for (let item of cart) {
             html += `<tr>
-                <td>${item.name}</tr>
+                <td>${item.name}</td>
                 <td>${item.price} دج</td>
                 <td><input type="number" class="qty-input" data-id="${item.id}" value="${item.qty}" min="1"></td>
                 <td>${item.price * item.qty} دج</td>
@@ -555,19 +574,80 @@
         if (container) container.innerHTML = cart.map(i => `<p>📘 ${i.name} (x${i.qty}) : ${i.price * i.qty} دج</p>`).join('');
     }
 
-    function sendOrder() {
-        let name = document.getElementById('fullName')?.value.trim();
-        let phone = document.getElementById('phoneNumber')?.value.trim();
-        let wilaya = document.getElementById('wilaya')?.value;
-        let address = document.getElementById('address')?.value.trim();
-        let deliveryType = document.querySelector('input[name="delivery"]:checked')?.value;
-        if (!name || !phone || !wilaya) { alert('أكمل البيانات'); return; }
-        if (deliveryType === "توصيل للمنزل" && !address) { alert('أدخل العنوان'); return; }
-        if (cart.length === 0) { alert('السلة فارغة'); return; }
-        let subtotal = getTotal(), delivery = getDeliveryFee(), total = subtotal + delivery;
-        let booksMsg = cart.map(i => `- ${i.name} (x${i.qty}) : ${i.price * i.qty} دج`).join('\n');
-        let msg = `📚 طلب جديد من مكتبة رفعة 📚\n\n👤 الاسم: ${name}\n📞 الهاتف: ${phone}\n📍 الولاية: ${wilaya}\n🚚 التوصيل: ${deliveryType}\n${deliveryType === "توصيل للمنزل" ? `🏠 العنوان: ${address}\n` : ''}\n📖 الكتب:\n${booksMsg}\n💰 المجموع: ${subtotal} دج\n🚚 التوصيل: ${delivery} دج\n💵 الإجمالي: ${total} دج`;
-        window.open(`https://wa.me/213784965784?text=${encodeURIComponent(msg)}`, '_blank');
+    // ==================== الدالة الجديدة: إرسال الطلب + Facebook Pixel ====================
+    function sendOrderToWhatsApp() {
+        // 1. جلب بيانات العميل من الحقول
+        const customerName = document.getElementById('fullName')?.value.trim();
+        const customerPhone = document.getElementById('phoneNumber')?.value.trim();
+        const customerWilaya = document.getElementById('wilaya')?.value;
+        const customerAddress = document.getElementById('address')?.value.trim();
+        const deliveryType = document.querySelector('input[name="delivery"]:checked')?.value;
+        
+        // 2. التحقق من صحة البيانات
+        if (!customerName || !customerPhone || !customerWilaya) {
+            alert('⚠️ الرجاء إكمال جميع البيانات (الاسم، الهاتف، الولاية)');
+            return;
+        }
+        if (deliveryType === "توصيل للمنزل" && !customerAddress) {
+            alert('⚠️ الرجاء إدخال عنوان التوصيل الكامل');
+            return;
+        }
+        if (cart.length === 0) {
+            alert('⚠️ السلة فارغة، أضف بعض الكتب أولاً');
+            return;
+        }
+        
+        // 3. حساب المبالغ
+        const subtotal = getTotal();
+        const deliveryFee = getDeliveryFee();
+        const total = subtotal + deliveryFee;
+        
+        // 4. تسجيل حدث الشراء في Facebook Pixel
+        if (typeof fbq !== 'undefined') {
+            fbq('track', 'Purchase', {
+                currency: 'DZD',
+                value: total,
+                content_type: 'product',
+                contents: cart.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.qty
+                }))
+            });
+            console.log('✅ Facebook Pixel: Purchase event tracked for', total, 'DZD');
+        } else {
+            console.warn('⚠️ Facebook Pixel not loaded');
+        }
+        
+        // 5. إنشاء رسالة واتساب
+        const booksList = cart.map(item => `📖 ${item.name} (x${item.qty}) : ${item.price * item.qty} دج`).join('\n');
+        
+        const whatsappMessage = `📚 *طلب جديد من مكتبة رفعة* 📚
+        
+👤 *الاسم:* ${customerName}
+📞 *الهاتف:* ${customerPhone}
+📍 *الولاية:* ${customerWilaya}
+🚚 *نوع التوصيل:* ${deliveryType}
+${deliveryType === "توصيل للمنزل" ? `🏠 *العنوان:* ${customerAddress}\n` : ''}
+📖 *الكتب المطلوبة:*
+${booksList}
+
+💰 *المجموع الفرعي:* ${subtotal} دج
+🚚 *رسوم التوصيل:* ${deliveryFee} دج
+💵 *الإجمالي النهائي:* ${total} دج
+
+⏰ *تاريخ الطلب:* ${new Date().toLocaleString('ar-DZ')}`;
+        
+        // 6. فتح واتساب (استبدل 213XXXXXXXXX برقم هاتفك)
+        const WHATSAPP_NUMBER = "213784965784"; // 👈 استبدل هذا برقمك
+        const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`;
+        
+        // 7. فتح الرابط
+        window.open(whatsappUrl, '_blank');
+        
+        // 8. إظهار رسالة تأكيد للمستخدم
+        showToast('✓ جاري تحويلك إلى واتساب...');
     }
 
     function showToast(msg) {
@@ -622,7 +702,7 @@
         document.getElementById('dashboard-modal').classList.remove('active');
     });
 
-    // ==================== التحميل ====================
+    // ==================== ربط الزر بالدالة الجديدة ====================
     document.addEventListener('DOMContentLoaded', () => {
         populateWilayas();
         loadCartFromStorage();
@@ -632,10 +712,19 @@
         document.getElementById('view-all-btn')?.addEventListener('click', () => showPage('shop'));
         document.getElementById('fixed-cart-btn')?.addEventListener('click', () => showPage('checkout'));
         document.getElementById('goto-checkout')?.addEventListener('click', () => showPage('checkout'));
-        document.getElementById('send-whatsapp')?.addEventListener('click', sendOrder);
+        
+        // استبدال دالة sendOrder القديمة بالدالة الجديدة
+        const whatsappBtn = document.getElementById('send-whatsapp');
+        if (whatsappBtn) {
+            // إزالة المستمع القديم إذا وجد
+            const newBtn = whatsappBtn.cloneNode(true);
+            whatsappBtn.parentNode.replaceChild(newBtn, whatsappBtn);
+            newBtn.addEventListener('click', sendOrderToWhatsApp);
+        }
+        
         document.getElementById('wilaya')?.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); });
         document.querySelectorAll('input[name="delivery"]').forEach(radio => radio.addEventListener('change', () => { updateDeliveryInfo(); updateCheckoutSummary(); }));
     });
 </script>
 </body>
-    </html>
+</html>
